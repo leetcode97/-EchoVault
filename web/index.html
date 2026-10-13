@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#F4F3EE">
+<title>🏆 EchoVault</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-emoji">🏆</span>
+    <div>
+      <h1>EchoVault</h1>
+      <p class="tagline">只属于你的私人音乐库</p>
+    </div>
+  </div>
+  <div class="search">
+    <input id="search" type="search" placeholder="搜索歌曲 / 歌手 / 专辑…" autocomplete="off">
+  </div>
+</header>
+
+<div class="statsbar" id="statsbar"></div>
+
+<nav class="tabs">
+  <button class="tab active" data-view="all">全部歌曲</button>
+  <button class="tab" data-view="albums">专辑</button>
+  <button class="tab" data-view="artists">歌手</button>
+</nav>
+
+<main id="view" class="view"></main>
+
+<!-- 底部播放条 -->
+<footer class="player" id="player">
+  <div class="player-track">
+    <img id="p-cover" class="p-cover" src="/icons/icon-192.png" alt="封面">
+    <div class="p-meta">
+      <div id="p-title" class="p-title">未播放</div>
+      <div id="p-artist" class="p-artist"></div>
+    </div>
+  </div>
+
+  <div class="player-center">
+    <div class="p-controls">
+      <button id="btn-prev" class="ctl" title="上一首" aria-label="上一首">⏮</button>
+      <button id="btn-play" class="ctl ctl-main" title="播放/暂停" aria-label="播放/暂停">▶</button>
+      <button id="btn-next" class="ctl" title="下一首" aria-label="下一首">⏭</button>
+    </div>
+    <div class="p-progress">
+      <span id="p-cur" class="p-time">0:00</span>
+      <input id="p-seek" type="range" min="0" max="1000" value="0" step="1" aria-label="进度">
+      <span id="p-dur" class="p-time">0:00</span>
+    </div>
+  </div>
+
+  <div class="player-side">
+    <select id="p-rate" class="rate" aria-label="播放速度">
+      <option value="0.5">0.5×</option>
+      <option value="0.75">0.75×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+    <span class="vol-icon">🔊</span>
+    <input id="p-volume" type="range" min="0" max="100" value="80" class="vol" aria-label="音量">
+  </div>
+</footer>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script src="/app.js"></script>
+</body>
+</html>

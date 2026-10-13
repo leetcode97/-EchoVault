@@ -1,0 +1,15 @@
+services:
+  echovault:
+    build: .
+    container_name: echovault
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /srv/echovault/music:/data/music:ro
+      - echovault_cache:/app/.cache
+    environment:
+      - MUSIC_DIR=/data/music
+
+volumes:
+  echovault_cache:

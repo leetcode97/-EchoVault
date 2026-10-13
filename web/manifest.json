@@ -1,0 +1,13 @@
+{
+  "name": "🏆 EchoVault 私人音乐库",
+  "short_name": "EchoVault",
+  "description": "自托管个人音乐播放器，只播放你自己的音乐文件",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F3EE",
+  "theme_color": "#F4F3EE",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

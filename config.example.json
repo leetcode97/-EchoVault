@@ -1,0 +1,8 @@
+# EchoVault 配置文件（复制为 config.json 后按需修改）
+{
+  "music_dir": "music",
+  "host": "0.0.0.0",
+  "port": 8000,
+  "library_cache": ".cache/library.json",
+  "cover_cache": ".cache/covers"
+}
