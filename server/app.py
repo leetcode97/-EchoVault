@@ -4,6 +4,8 @@
 启动: uvicorn server.app:app --host 0.0.0.0 --port 8000
 """
 import json
+import threading
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query
@@ -54,6 +56,21 @@ library = MusicLibrary(MUSIC_DIR, CACHE_FILE, COVER_DIR)
 library.load_or_scan()
 
 app = FastAPI(title="EchoVault", version="1.0.0")
+
+AUTO_RESCAN_INTERVAL = 20  # 秒；后台线程定期检查音乐目录变化并自动重扫
+
+
+def _auto_rescan_loop():
+    """后台自动检测：用户往音乐目录放新文件后，自动更新曲库。"""
+    while True:
+        time.sleep(AUTO_RESCAN_INTERVAL)
+        try:
+            library.scan_if_stale()
+        except Exception:
+            pass
+
+
+threading.Thread(target=_auto_rescan_loop, daemon=True).start()
 
 
 @app.get("/api/stats")

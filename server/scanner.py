@@ -221,6 +221,13 @@ class MusicLibrary:
             return False
         return newest > (self.scanned_at or 0)
 
+    def scan_if_stale(self):
+        """目录有新文件时自动重扫，返回是否发生了重扫。"""
+        if self._cache_stale():
+            self.scan()
+            return True
+        return False
+
     def scan(self):
         with self._lock:
             self.tracks = []

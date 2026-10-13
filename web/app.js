@@ -42,16 +42,19 @@
       return fetch("/api/stats").then(function (r) { return r.json(); });
     }).then(function (st) {
       var el = document.getElementById("statsbar");
+      var btn = '<button class="tab" id="btn-rescan" style="margin-left:8px;padding:3px 12px;font-size:12px;">🔄 重新扫描</button>';
       if (st.error) {
-        el.innerHTML = '<span style="color:#B45309;">⚠ ' + escapeHtml(st.error) + "</span>";
+        el.innerHTML = '<span style="color:#B45309;">⚠ ' + escapeHtml(st.error) + "</span>" + btn;
       } else {
         var secs = st.total_seconds;
         var durStr = "";
         if (secs >= 3600) durStr = Math.floor(secs / 3600) + " 小时 " + Math.floor((secs % 3600) / 60) + " 分钟";
         else if (secs >= 60) durStr = Math.floor(secs / 60) + " 分钟 " + (secs % 60) + " 秒";
         else durStr = secs + " 秒";
-        el.textContent = "共 " + st.tracks + " 首 · " + st.albums + " 张专辑 · " + st.artists + " 位歌手 · 总时长 " + durStr + " · 曲库目录: " + st.music_dir;
+        el.innerHTML = "共 " + st.tracks + " 首 · " + st.albums + " 张专辑 · " + st.artists + " 位歌手 · 总时长 " + durStr + btn;
       }
+      var b = document.getElementById("btn-rescan");
+      if (b) b.addEventListener("click", rescan);
       return st;
     });
   }
@@ -178,11 +181,26 @@
 
   function rescan() {
     fetch("/api/rescan", { method: "POST" }).then(function (r) { return r.json(); }).then(function () {
-      return loadLibrary();
-    }).then(function () { return loadAlbums(); }).then(function () { return loadArtists(); })
-      .then(render)
-      .catch(function (e) { alert("重新扫描失败：" + e); });
+      return refreshAll();
+    }).catch(function (e) { alert("重新扫描失败：" + e); });
   }
+
+  function refreshAll() {
+    return loadLibrary().then(loadAlbums).then(loadArtists).then(render);
+  }
+
+  /* 自动感知：后台扫描完成后网页自动出现新歌（无需手动刷新） */
+  var lastScanned = null;
+  function pollStats() {
+    fetch("/api/stats").then(function (r) { return r.json(); }).then(function (st) {
+      var s = st.scanned_at || 0;
+      if (lastScanned !== null && Math.abs(s - lastScanned) > 0.001) {
+        refreshAll();
+      }
+      lastScanned = s;
+    }).catch(function () {});
+  }
+  setInterval(pollStats, 15000);
 
   /* ---------- 播放 ---------- */
   function playQueue(list, i) {
