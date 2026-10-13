@@ -25,6 +25,7 @@ def load_config():
         "port": 8000,
         "library_cache": ".cache/library.json",
         "cover_cache": ".cache/covers",
+        "filename_format": "artist-title",
     }
     if cfg_path.exists():
         try:
@@ -52,7 +53,7 @@ MUSIC_DIR = Path(CONFIG["music_dir_abs"])
 CACHE_FILE = ROOT / CONFIG["library_cache"]
 COVER_DIR = ROOT / CONFIG["cover_cache"]
 
-library = MusicLibrary(MUSIC_DIR, CACHE_FILE, COVER_DIR)
+library = MusicLibrary(MUSIC_DIR, CACHE_FILE, COVER_DIR, filename_format=CONFIG.get("filename_format", "artist-title"))
 library.load_or_scan()
 
 app = FastAPI(title="EchoVault", version="1.0.0")
