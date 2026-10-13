@@ -19,7 +19,7 @@ EXT_COVER_NAMES = {
     "albumart.jpg", "albumart.png",
 }
 
-SCAN_VERSION = 3  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
+SCAN_VERSION = 4  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -102,7 +102,26 @@ def _tag_num(tags, *keys):
 
 
 def _find_ext_cover(path: Path):
-    """在同目录查找常见外部封面文件，返回相对 posix 路径或 None。"""
+    """查找外部封面，优先级：同名图片 → 去曲目号同名图片 → 通用封面名兜底。
+
+    例如 `01 晴天.mp3` 会依次尝试：
+      1) 01 晴天.jpg / 01 晴天.png / 01 晴天.jpeg（同名精确匹配）
+      2) 晴天.jpg / 晴天.png（去掉 "01. " 前缀后再匹配）
+      3) cover.jpg / folder.jpg / front.jpg ...（整个文件夹共享兜底）
+    返回相对 posix 路径或 None。
+    """
+    stem = path.stem
+    for ext in (".jpg", ".jpeg", ".png"):
+        p = path.parent / (stem + ext)
+        if p.is_file():
+            return p.as_posix()
+    m = re.match(r"^\d{1,3}[.\-_\s]+\s*(.*)$", stem)
+    if m:
+        core = m.group(1)
+        for ext in (".jpg", ".jpeg", ".png"):
+            p = path.parent / (core + ext)
+            if p.is_file():
+                return p.as_posix()
     for name in EXT_COVER_NAMES:
         p = path.parent / name
         if p.is_file():
