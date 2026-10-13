@@ -6,6 +6,7 @@
 
 - 自动扫描音乐目录（mp3 / flac / m4a / aac / ogg / opus / wav）
 - 读取 ID3/内嵌标签：标题、歌手、专辑、年份、流派、时长、封面
+- 封面三级兜底：内嵌封面 → 同目录 `cover.jpg` / `folder.jpg` / `front.jpg` 等外部封面
 - 全部歌曲 / 专辑 / 歌手 三种视图 + 全局搜索
 - 播放队列、进度拖动（HTTP Range）、倍速、音量记忆
 - Android 锁屏媒体控制（Media Session）
@@ -44,6 +45,8 @@ python -m venv .venv
 - `host`：`0.0.0.0` 表示允许局域网/公网访问；只想本机访问可改 `127.0.0.1`
 
 放入新音乐后，页面空态处或重新扫描按钮即可刷新曲库。
+
+> **封面小贴士**：文件没有内嵌封面时，在歌曲所在文件夹放一张 `cover.jpg`（或 `folder.jpg` / `front.jpg` / `cover.png`），EchoVault 会自动识别并显示，无需改文件。批量补齐标签和封面推荐 [MusicBrainz Picard](https://picard.musicbrainz.org/) 或 [Mp3tag](https://www.mp3tag.de/)。
 
 ## 多端访问
 

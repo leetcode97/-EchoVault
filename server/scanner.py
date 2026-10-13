@@ -10,6 +10,16 @@ from mutagen import File as MFile
 
 AUDIO_EXTS = {".mp3", ".flac", ".m4a", ".aac", ".ogg", ".opus", ".wav"}
 
+# 常见的外部封面文件名（无内嵌封面时的兜底）
+EXT_COVER_NAMES = {
+    "cover.jpg", "cover.jpeg", "cover.png",
+    "folder.jpg", "folder.jpeg", "folder.png",
+    "front.jpg", "front.jpeg", "front.png",
+    "albumart.jpg", "albumart.png",
+}
+
+SCAN_VERSION = 2  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
+
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
     "image/jpg": ".jpg",
@@ -90,6 +100,15 @@ def _tag_num(tags, *keys):
     return None
 
 
+def _find_ext_cover(path: Path):
+    """在同目录查找常见外部封面文件，返回相对 posix 路径或 None。"""
+    for name in EXT_COVER_NAMES:
+        p = path.parent / name
+        if p.is_file():
+            return p.as_posix()
+    return None
+
+
 def scan_track(path: Path):
     """扫描单个音频文件，返回 track dict 或 None。"""
     try:
@@ -123,6 +142,7 @@ def scan_track(path: Path):
         bitrate = 0
 
     cover_data, cover_mime = _extract_cover(mf)
+    ext_cover = _find_ext_cover(path) if cover_data is None else None
 
     return {
         "id": track_id,
@@ -136,7 +156,8 @@ def scan_track(path: Path):
         "duration": duration,
         "bitrate": bitrate,
         "ext": path.suffix.lower(),
-        "has_cover": cover_data is not None,
+        "has_cover": cover_data is not None or ext_cover is not None,
+        "ext_cover": ext_cover,
     }, (track_id, cover_data, cover_mime)
 
 
@@ -165,10 +186,13 @@ class MusicLibrary:
         return target
 
     def load_or_scan(self):
-        """优先加载缓存；缓存缺失或目录变化时重新扫描。"""
+        """优先加载缓存；缓存缺失/版本不符/目录变化时重新扫描。"""
         if self.cache_file.exists():
             try:
                 data = json.loads(self.cache_file.read_text(encoding="utf-8"))
+                if data.get("scan_version") != SCAN_VERSION:
+                    self.scan()
+                    return
                 self.tracks = data.get("tracks", [])
                 self.scanned_at = data.get("scanned_at")
                 self.by_id = {t["id"]: t for t in self.tracks}
@@ -180,12 +204,17 @@ class MusicLibrary:
         self.scan()
 
     def _cache_stale(self):
-        """音乐目录修改时间晚于缓存生成时间 → 需要重扫。"""
+        """音乐目录里音频或封面文件的修改时间晚于缓存生成时间 → 需要重扫。"""
         if not self.music_dir.exists():
             return False
         try:
             newest = max(
-                (p.stat().st_mtime for p in self.music_dir.rglob("*") if p.is_file() and p.suffix.lower() in AUDIO_EXTS),
+                (
+                    p.stat().st_mtime
+                    for p in self.music_dir.rglob("*")
+                    if p.is_file()
+                    and (p.suffix.lower() in AUDIO_EXTS or p.name.lower() in EXT_COVER_NAMES)
+                ),
                 default=0,
             )
         except Exception:
@@ -222,7 +251,7 @@ class MusicLibrary:
     def _save_cache(self):
         try:
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-            payload = {"scanned_at": self.scanned_at, "tracks": self.tracks}
+            payload = {"scan_version": SCAN_VERSION, "scanned_at": self.scanned_at, "tracks": self.tracks}
             tmp = self.cache_file.with_suffix(".tmp")
             tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             os.replace(tmp, self.cache_file)
@@ -236,8 +265,14 @@ class MusicLibrary:
         track = self.by_id.get(track_id)
         if not track or not track.get("has_cover"):
             return None
+        # 1. 内嵌封面缓存优先
         for ext in (".jpg", ".png", ".webp", ".gif"):
             p = self.cover_dir / f"{track_id}{ext}"
+            if p.exists():
+                return p
+        # 2. 外部封面文件兜底（cover.jpg / folder.jpg 等）
+        if track.get("ext_cover"):
+            p = self.music_dir / track["ext_cover"]
             if p.exists():
                 return p
         return None
