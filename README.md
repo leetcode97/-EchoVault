@@ -90,7 +90,7 @@ python -m venv .venv
 ```
 本地代码 --git push--> GitHub --git clone--> 云服务器 --docker compose--> EchoVault
                                             ↑
-                                    音乐直接传进挂载目录 /srv/echovault/music
+                                    音乐直接传进挂载目录 ~/echovault/music
 ```
 
 详细步骤见 **[DEPLOY.md](DEPLOY.md)**（Docker 部署 / rsync 传歌 / 安全加固 / 备份）。
@@ -99,7 +99,7 @@ python -m venv .venv
 # 服务器上三行搞定
 git clone <你的仓库> echovault && cd echovault
 docker compose up -d --build
-# 把音乐 rsync 到 /srv/echovault/music，20 秒后自动入库
+# 把音乐 rsync 到 ~/echovault/music，20 秒后自动入库
 ```
 
 ## 📁 项目结构
