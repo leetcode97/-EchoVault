@@ -59,7 +59,29 @@ docker --version          # 验证：应显示版本号
 docker compose version    # 验证：应显示 v2 版本号
 ```
 
-### 3. 放行端口
+### 3. 配置国内加速（国内服务器必做，否则构建要十几分钟）
+
+**① Docker 镜像加速**（解决基础镜像从 Docker Hub 拉取慢）：
+
+```bash
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null <<'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://dockerproxy.com",
+    "https://docker.1panel.live"
+  ]
+}
+EOF
+sudo systemctl restart docker
+```
+
+> 阿里云/腾讯云服务器也可用各自的专属加速地址（控制台有），效果更稳。
+
+**② pip 镜像**：Dockerfile 已内置清华 PyPI 镜像源，无需手动配置。
+
+### 4. 放行端口
 
 - **云服务商控制台**：安全组 / 防火墙规则，放行 TCP **8848** 端口（如果之后用域名+HTTPS，再放行 80/443 并反代）
 - **服务器系统防火墙**（如有开启）：

@@ -3,7 +3,8 @@ FROM python:3.13-slim
 WORKDIR /app
 
 COPY server/requirements.txt /app/server/requirements.txt
-RUN pip install --no-cache-dir -r /app/server/requirements.txt
+# 国内服务器加速：使用清华 PyPI 镜像（阿里云服务器可换 https://mirrors.aliyun.com/pypi/simple/）
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r /app/server/requirements.txt
 
 COPY server /app/server
 COPY web /app/web
