@@ -2,6 +2,15 @@
 music/
 .cache/
 
+# 音频格式全局兜底（防止音乐放在其他目录时被误提交）
+*.mp3
+*.ogg
+*.flac
+*.m4a
+*.aac
+*.wav
+*.opus
+
 # Python
 __pycache__/
 *.pyc
