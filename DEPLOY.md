@@ -79,7 +79,7 @@ sudo systemctl restart docker
 
 > 阿里云/腾讯云服务器也可用各自的专属加速地址（控制台有），效果更稳。
 
-**② pip 镜像**：Dockerfile 已内置清华 PyPI 镜像源，无需手动配置。
+**② pip 镜像**：Dockerfile 已内置**阿里云 PyPI 镜像源**（阿里云服务器内网访问最快），无需手动配置。
 
 ### 4. 放行端口
 
