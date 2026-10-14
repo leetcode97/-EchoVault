@@ -19,7 +19,7 @@
 │              云服务器（Linux + Docker）          │
 │  ┌─────────────────────┐   ┌─────────────────┐ │
 │  │ 🐳 容器 = 代码       │   │ 💾 硬盘 = 音乐   │ │
-│  │（git 拉下来构建的）   │   │ /srv/echovault/ │ │
+│  │（git 拉下来构建的）   │   │ ~/echovault/ │ │
 │  │                     │←挂载→│    music       │ │
 │  └─────────────────────┘   └─────────────────┘ │
 └───────────────────────────────────────────────┘
@@ -77,8 +77,8 @@ sudo ufw allow 8848/tcp
 git clone https://github.com/leetcode97/-EchoVault.git echovault
 cd echovault
 
-# 2. 手动创建音乐文件夹（GitHub 不会给你这个目录，必须自己建）
-sudo mkdir -p /srv/echovault/music
+# 2. 创建音乐文件夹（就在项目里面，以后传歌都传这）
+mkdir -p music
 
 # 3. 构建镜像并后台启动（崩溃/重启自动拉起）
 docker compose up -d --build
@@ -98,7 +98,7 @@ docker compose ps         # echovault 状态应为 Up
 
 ### 音乐到底存哪？（先看懂这句）
 
-歌曲物理上存在**服务器硬盘**的 `/srv/echovault/music` 文件夹，通过 Docker"挂载"借给容器看（容器内叫 `/data/music`，是**同一份文件，不是复制**）。你往这个文件夹放歌，EchoVault 约 20 秒后自动入库，**无需重启**。
+歌曲物理上存在**服务器硬盘**的 `~/echovault/music` 文件夹，通过 Docker"挂载"借给容器看（容器内叫 `/data/music`，是**同一份文件，不是复制**）。你往这个文件夹放歌，EchoVault 约 20 秒后自动入库，**无需重启**。
 
 类比：像 U 盘插电脑——文件在 U 盘里，电脑挂载后能打开；拔掉（删容器）文件还在 U 盘。
 
@@ -109,18 +109,18 @@ docker compose ps         # echovault 状态应为 Up
 需要 Git Bash（随 Git 安装自带）或 WSL，在**本地电脑**执行：
 
 ```bash
-rsync -avP "D:/CodeProjects/🏆 EchoVault/music/" root@服务器IP:/srv/echovault/music/
+rsync -avP "D:/CodeProjects/🏆 EchoVault/music/" root@服务器IP:~/echovault/music/
 ```
 
 **方案 B：scp（PowerShell 直接可用，适合少量文件）**
 
 ```powershell
-scp -r "D:\CodeProjects\🏆 EchoVault\music\*" root@服务器IP:/srv/echovault/music/
+scp -r "D:\CodeProjects\🏆 EchoVault\music\*" root@服务器IP:~/echovault/music/
 ```
 
 **方案 C：宝塔面板 / WinSCP（图形界面）**
 
-登录面板把本地文件拖进 `/srv/echovault/music/` 即可。
+登录面板把本地文件拖进 `~/echovault/music/` 即可。
 
 ### 传完验证
 
@@ -136,7 +136,7 @@ curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 
 | 场景 | 操作 |
 | --- | --- |
-| **加新歌** | 往 `/srv/echovault/music` 传文件即可，20 秒自动入库，什么都不用重启 |
+| **加新歌** | 往 `~/echovault/music` 传文件即可，20 秒自动入库，什么都不用重启 |
 | **改代码/更新版本** | 本地 `git push` → 服务器 `git pull` → `docker compose up -d --build` |
 | **看日志** | `docker compose logs -f echovault` |
 | **重启服务** | `docker compose restart` |
@@ -150,7 +150,7 @@ curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 | 优先级 | 事项 | 做法 |
 | --- | --- | --- |
 | ⭐⭐⭐ | **访问密码** | EchoVault 目前无内置鉴权，公网 8848 任何人可访问。方案 A：**Tailscale 组网**（免费，只你的设备能连）；方案 B：Nginx 反代 + HTTPS + 账号密码 |
-| ⭐⭐⭐ | **备份音乐** | 音乐是服务器上的唯一副本！定期 `rsync -avP root@服务器IP:/srv/echovault/music/ ./music-backup/` 拉回本地，或同步到网盘/对象存储 |
+| ⭐⭐⭐ | **备份音乐** | 音乐是服务器上的唯一副本！定期 `rsync -avP root@服务器IP:~/echovault/music/ ./music-backup/` 拉回本地，或同步到网盘/对象存储 |
 | ⭐⭐ | **HTTPS（PWA）** | 手机"添加到主屏幕"要求 HTTPS。长期使用建议域名 + 证书（免费证书可申请） |
 | ⭐⭐ | **服务器 SSH 安全** | 修改默认 SSH 端口、禁用 root 密码登录改密钥登录（网上教程很多） |
 
@@ -162,10 +162,10 @@ curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 | --- | --- |
 | 端口 8848 被占用 | `docker compose down` 后重试；或 `ss -tlnp | grep 8848` 看谁占着 |
 | 传歌很慢 | 检查服务器带宽上限、安全组入站规则；rsync 会自动续传 |
-| 曲库没刷新 | 确认文件真的在 `/srv/echovault/music`；等 20 秒；或 `curl -X POST http://localhost:8848/api/rescan` 手动扫 |
+| 曲库没刷新 | 确认文件真的在 `~/echovault/music`；等 20 秒；或 `curl -X POST http://localhost:8848/api/rescan` 手动扫 |
 | 手机打不开 | 手机和服务器要在同一网络？——不，手机走公网，确认安全组放行 8848、服务绑定 `0.0.0.0`（配置里默认已是） |
 | 服务器重启后服务没了 | 不应发生：`docker compose` 配了 `restart: unless-stopped`；若没有自动拉起，执行 `docker compose up -d` |
-| 容器删了歌还在吗 | 在。歌在服务器硬盘 `/srv/echovault/music`，不在容器里 |
+| 容器删了歌还在吗 | 在。歌在服务器硬盘 `~/echovault/music`，不在容器里 |
 | 从 GitHub 拉的代码没有 music 文件夹 | 正常。音乐永远手动传（见第四节），代码与数据分离是设计 |
 
 ---

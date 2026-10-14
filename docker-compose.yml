@@ -6,7 +6,7 @@ services:
     ports:
       - "8848:8000"
     volumes:
-      - /srv/echovault/music:/data/music:ro
+      - ./music:/data/music:ro
       - echovault_cache:/app/.cache
     environment:
       - MUSIC_DIR=/data/music
