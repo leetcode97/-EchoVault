@@ -4,7 +4,7 @@ services:
     container_name: echovault
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8848:8000"
     volumes:
       - /srv/echovault/music:/data/music:ro
       - echovault_cache:/app/.cache

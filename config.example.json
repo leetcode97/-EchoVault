@@ -2,7 +2,7 @@
 {
   "music_dir": "music",
   "host": "0.0.0.0",
-  "port": 8000,
+  "port": 8848,
   "library_cache": ".cache/library.json",
   "cover_cache": ".cache/covers",
   "filename_format": "artist-title"

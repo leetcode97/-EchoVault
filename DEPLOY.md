@@ -61,11 +61,11 @@ docker compose version    # 验证：应显示 v2 版本号
 
 ### 3. 放行端口
 
-- **云服务商控制台**：安全组 / 防火墙规则，放行 TCP **8000** 端口（如果之后用域名+HTTPS，再放行 80/443 并反代）
+- **云服务商控制台**：安全组 / 防火墙规则，放行 TCP **8848** 端口（如果之后用域名+HTTPS，再放行 80/443 并反代）
 - **服务器系统防火墙**（如有开启）：
 
 ```bash
-sudo ufw allow 8000/tcp
+sudo ufw allow 8848/tcp
 ```
 
 ---
@@ -84,7 +84,7 @@ sudo mkdir -p /srv/echovault/music
 docker compose up -d --build
 
 # 4. 验证服务在线
-curl http://localhost:8000/api/stats
+curl http://localhost:8848/api/stats
 # 应返回类似：{"tracks":0,"albums":0,...}（此时还没传歌）
 
 docker compose ps         # echovault 状态应为 Up
@@ -125,10 +125,10 @@ scp -r "D:\CodeProjects\🏆 EchoVault\music\*" root@服务器IP:/srv/echovault/
 ### 传完验证
 
 ```bash
-curl http://localhost:8000/api/stats    # tracks 应变成你的歌曲数
+curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 ```
 
-或直接手机/电脑浏览器打开 `http://服务器IP:8000` 看曲库。
+或直接手机/电脑浏览器打开 `http://服务器IP:8848` 看曲库。
 
 ---
 
@@ -149,7 +149,7 @@ curl http://localhost:8000/api/stats    # tracks 应变成你的歌曲数
 
 | 优先级 | 事项 | 做法 |
 | --- | --- | --- |
-| ⭐⭐⭐ | **访问密码** | EchoVault 目前无内置鉴权，公网 8000 任何人可访问。方案 A：**Tailscale 组网**（免费，只你的设备能连）；方案 B：Nginx 反代 + HTTPS + 账号密码 |
+| ⭐⭐⭐ | **访问密码** | EchoVault 目前无内置鉴权，公网 8848 任何人可访问。方案 A：**Tailscale 组网**（免费，只你的设备能连）；方案 B：Nginx 反代 + HTTPS + 账号密码 |
 | ⭐⭐⭐ | **备份音乐** | 音乐是服务器上的唯一副本！定期 `rsync -avP root@服务器IP:/srv/echovault/music/ ./music-backup/` 拉回本地，或同步到网盘/对象存储 |
 | ⭐⭐ | **HTTPS（PWA）** | 手机"添加到主屏幕"要求 HTTPS。长期使用建议域名 + 证书（免费证书可申请） |
 | ⭐⭐ | **服务器 SSH 安全** | 修改默认 SSH 端口、禁用 root 密码登录改密钥登录（网上教程很多） |
@@ -160,10 +160,10 @@ curl http://localhost:8000/api/stats    # tracks 应变成你的歌曲数
 
 | 症状 | 原因与解决 |
 | --- | --- |
-| 端口 8000 被占用 | `docker compose down` 后重试；或 `ss -tlnp | grep 8000` 看谁占着 |
+| 端口 8848 被占用 | `docker compose down` 后重试；或 `ss -tlnp | grep 8848` 看谁占着 |
 | 传歌很慢 | 检查服务器带宽上限、安全组入站规则；rsync 会自动续传 |
-| 曲库没刷新 | 确认文件真的在 `/srv/echovault/music`；等 20 秒；或 `curl -X POST http://localhost:8000/api/rescan` 手动扫 |
-| 手机打不开 | 手机和服务器要在同一网络？——不，手机走公网，确认安全组放行 8000、服务绑定 `0.0.0.0`（配置里默认已是） |
+| 曲库没刷新 | 确认文件真的在 `/srv/echovault/music`；等 20 秒；或 `curl -X POST http://localhost:8848/api/rescan` 手动扫 |
+| 手机打不开 | 手机和服务器要在同一网络？——不，手机走公网，确认安全组放行 8848、服务绑定 `0.0.0.0`（配置里默认已是） |
 | 服务器重启后服务没了 | 不应发生：`docker compose` 配了 `restart: unless-stopped`；若没有自动拉起，执行 `docker compose up -d` |
 | 容器删了歌还在吗 | 在。歌在服务器硬盘 `/srv/echovault/music`，不在容器里 |
 | 从 GitHub 拉的代码没有 music 文件夹 | 正常。音乐永远手动传（见第四节），代码与数据分离是设计 |
@@ -176,7 +176,7 @@ curl http://localhost:8000/api/stats    # tracks 应变成你的歌曲数
 
 ```powershell
 cd D:\CodeProjects\🏆 EchoVault
-.\run.ps1        # 一键启动，浏览器打开 http://localhost:8000
+.\run.ps1        # 一键启动，浏览器打开 http://localhost:8848
 ```
 
 ### 相关文件

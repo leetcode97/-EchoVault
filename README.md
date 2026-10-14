@@ -42,14 +42,14 @@ cd EchoVault
 .\run.ps1
 ```
 
-脚本自动创建虚拟环境、安装依赖并启动服务，浏览器打开 `http://localhost:8000`。
+脚本自动创建虚拟环境、安装依赖并启动服务，浏览器打开 `http://localhost:8848`。
 
 手动启动：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\pip install -r server\requirements.txt
-.\.venv\Scripts\python -m uvicorn server.app:app --host 0.0.0.0 --port 8000
+.\.venv\Scripts\python -m uvicorn server.app:app --host 0.0.0.0 --port 8848
 ```
 
 ## ⚙️ 配置（config.json）
@@ -58,7 +58,7 @@ python -m venv .venv
 | --- | --- | --- |
 | `music_dir` | `music` | 音乐文件夹（支持绝对路径） |
 | `host` | `0.0.0.0` | `0.0.0.0` 局域网/公网可访问；`127.0.0.1` 仅本机 |
-| `port` | `8000` | 服务端口 |
+| `port` | `8848` | 服务端口 |
 | `filename_format` | `artist-title` | 文件名解析规则：`artist-title`（`周杰伦 - 晴天.mp3`）/ `title-artist`（`晴天 - 周杰伦.mp3`）/ `none` 关闭 |
 
 ## 🖼️ 封面机制（核心设计）
