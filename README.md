@@ -5,18 +5,19 @@
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-Offline%20Shell-5A0FC8?logo=pwa&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20Android-1F6FEB)
-![Music](https://img.shields.io/badge/Music-MP3%20FLAC%20OGG%20M4A-4C9A2A)
+![Music](https://img.shields.io/badge/Music-MP3%20%7C%20FLAC%20%7C%20OGG%20%7C%20M4A-4C9A2A)
 
 ---
 
 ## ✨ 为什么用它
 
 - 🎧 **只播自己的歌**：音乐文件全在你手里，没有任何平台的版权、会员、加密限制
-- 📱 **多端访问**：Android / iOS 浏览器 + 电脑，PWA 添加到主屏幕，体验像原生 App
+- 📱 **多端访问**：Android 手机 + Windows 电脑浏览器，PWA 添加到主屏幕，体验像原生 App
 - 🔐 **数据主权**：你的音乐、你的服务器，不经过任何第三方
 - 🕐 **7×24 在线**：部署到云服务器后随时随地听，手机锁屏也能控制（Media Session）
+- 🐳 **零版权风险**：音乐永远留在你的硬盘/服务器，代码与数据分离，永不进 Git
 
 ## 🚀 功能特性
 
@@ -29,13 +30,13 @@
 | 🔍 浏览 | 全部歌曲 / 专辑 / 歌手三种视图 + 全局搜索 |
 | ▶️ 播放 | 播放队列、进度拖动（HTTP Range 206）、倍速 0.5–2×、音量记忆、键盘快捷键 |
 | 📱 PWA | 离线壳 + 添加到主屏幕 + Android 锁屏媒体控制 |
-| 🐳 部署 | Docker 一键上云，音乐存挂载卷、代码存镜像，数据与代码分离 |
+| 🐳 部署 | Docker 一键上云，音乐存挂载目录、代码存镜像，数据与代码分离 |
 
 ## 📸 界面预览
 
 ![EchoVault 主界面](docs/screenshot.png)
 
-## ⚡ 快速开始（Windows）
+## ⚡ 快速开始（Windows 本地）
 
 ```powershell
 cd EchoVault
@@ -59,7 +60,7 @@ python -m venv .venv
 | `music_dir` | `music` | 音乐文件夹（支持绝对路径） |
 | `host` | `0.0.0.0` | `0.0.0.0` 局域网/公网可访问；`127.0.0.1` 仅本机 |
 | `port` | `8848` | 服务端口 |
-| `filename_format` | `artist-title` | 文件名解析规则：`artist-title`（`周杰伦 - 晴天.mp3`）/ `title-artist`（`晴天 - 周杰伦.mp3`）/ `none` 关闭 |
+| `filename_format` | `title-artist` | 文件名解析规则：`title-artist`（`晴天 - 周杰伦.mp3`）/ `artist-title`（`周杰伦 - 晴天.mp3`）/ `none` 关闭 |
 
 ## 🖼️ 封面机制（核心设计）
 
@@ -69,7 +70,9 @@ python -m venv .venv
 
 - **同名配对**：图片与 mp3 同名即自动关联（`01 晴天.mp3` ↔ `01 晴天.jpg`），去掉曲目号也能匹配（`晴天.jpg`）
 - **目录兜底**：没有专属图时自动使用 `cover.jpg` / `folder.jpg` / `front.jpg`
-- 封面只用于显示，**不会修改你的音乐文件**
+- **封面怎么来**：多数下载的 mp3 不带封面时，自己找一张专辑封面图存成同名 jpg 即可（无需写入 mp3 文件）
+- **封面只用于显示，不会修改你的音乐文件**
+- **体检工具**：`tools/check_cover.py` 可查看任意音频文件是否内嵌封面、提取元数据信息
 
 ## 📡 API 一览
 
@@ -83,24 +86,34 @@ python -m venv .venv
 | `GET /api/stream/{id}` | 音频流（HTTP Range 拖动） |
 | `POST /api/rescan` | 重新扫描 |
 
-## ☁️ 云服务器部署
+## ☁️ 部署到云端（Docker）
 
-音乐**永不进 Git**（`.gitignore` 已锁定），代码与数据分离：
+音乐**永不进 Git**（`.gitignore` 已锁定 `music/` 与全部音频格式），代码与数据分离：
 
 ```
 本地代码 --git push--> GitHub --git clone--> 云服务器 --docker compose--> EchoVault
                                             ↑
-                                    音乐直接传进挂载目录 ~/echovault/music
+                                    音乐直接传进项目内 ~/echovault/music
 ```
 
-详细步骤见 **[DEPLOY.md](DEPLOY.md)**（Docker 部署 / rsync 传歌 / 安全加固 / 备份）。
+详细步骤见 **[DEPLOY.md](DEPLOY.md)**（Docker 部署 / 传歌 / 国内加速 / 安全加固 / 备份）。
 
 ```bash
-# 服务器上三行搞定
-git clone <你的仓库> echovault && cd echovault
+# 服务器上四行搞定（音乐目录就在项目里）
+git clone https://github.com/leetcode97/-EchoVault.git echovault
+cd echovault
+mkdir -p music
 docker compose up -d --build
-# 把音乐 rsync 到 ~/echovault/music，20 秒后自动入库
 ```
+
+```bash
+# 传歌（增量，只传新增/改动的，20 秒自动入库）
+rsync -avP "本地music路径/" root@服务器IP:~/echovault/music/
+```
+
+- **国内服务器加速**：Dockerfile 已内置阿里云 PyPI 源；Docker 镜像加速器配置见 DEPLOY.md，构建从十几分钟降到 1 分钟内
+- **放行端口**：云服务商安全组放行 TCP `8848` 后，手机/电脑访问 `http://服务器IP:8848`
+- **日常加歌**：本地下载新歌 → rsync 或 SFTP 拖进服务器 `music/` → 20 秒后自动入库，不用碰 Docker
 
 ## 📁 项目结构
 
@@ -114,6 +127,8 @@ EchoVault/
 │   ├── index.html / app.js / style.css
 │   ├── manifest.json / sw.js / icons/
 ├── music/           # 你的音乐（不入 git）
+├── tools/           # 辅助工具
+│   └── check_cover.py   # 封面/元数据体检
 ├── docs/            # 文档与截图
 ├── config.json      # 配置
 ├── run.ps1          # Windows 一键启动
@@ -124,19 +139,19 @@ EchoVault/
 
 ## 🛠️ 技术栈
 
-**FastAPI**（Python）· **原生 PWA**（HTML/CSS/JS + Service Worker）· **mutagen**（元数据）· **Docker**
+**FastAPI**（Python）· **原生 PWA**（HTML/CSS/JS + Service Worker）· **mutagen**（元数据）· **Docker Compose**
 
 后端零数据库依赖：曲库缓存 JSON 于 `.cache/`，文件变更自动感知，轻量到一台低配服务器能同时跑多个服务。
 
 ## ⚖️ 版权说明
 
-本项目**只播放你自己合法拥有的音乐文件**。代码可自由使用；音乐数据（`music/`）与音频格式文件已被 `.gitignore` 锁定，**不会也不应**提交到任何公开仓库。
+本项目**只播放你自己合法拥有的音乐文件**。代码可自由使用；音乐数据（`music/`）与音频格式文件已被 `.gitignore` 锁定，**不会也不应**提交到任何公开仓库。音乐的获取、存储、使用请遵守所在地法律法规与版权规定。
 
 ## 🗺️ Roadmap
 
 - [x] 曲库扫描 / 元数据 / 封面三级兜底 / 流式播放
 - [x] 搜索 / 专辑 / 歌手 / 播放队列 / 倍速 / Media Session / PWA
-- [x] 同名封面配对 / 自动感知文件变更 / Docker 部署指南
+- [x] 同名封面配对 / 自动感知文件变更 / Docker 部署 / 国内构建加速
 - [ ] 歌单持久化（数据库）
 - [ ] 歌词（LRC）显示
 - [ ] 网页上传歌曲与封面
