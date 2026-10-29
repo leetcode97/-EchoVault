@@ -19,7 +19,7 @@ EXT_COVER_NAMES = {
     "albumart.jpg", "albumart.png",
 }
 
-SCAN_VERSION = 5  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
+SCAN_VERSION = 7  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -130,15 +130,18 @@ def _find_ext_cover(path: Path):
 
 
 # 文件名分隔符（按优先级尝试）：空格-空格、空格–空格、空格—空格、下划线等
-_FILENAME_SEPS = (" - ", " – ", " — ", " _ ", "_", " -", "- ")
+_FILENAME_SEPS = (" - ", " – ", " — ", " _ ", "_", " -", "- ", "-", "–", "—")
 
 
 def parse_filename(path: Path, fmt):
-    """从文件名解析 (title, artist)。仅在文件缺少 ID3 标签时使用。
+    """从文件名解析 (title, artist, album)。仅在文件缺少 ID3 标签时使用。
 
     fmt:
-      - "artist-title": 文件名 = 歌手 - 歌名（行业最普遍）
+      - "artist-title": 文件名 = 歌手 - 歌名
       - "title-artist": 文件名 = 歌名 - 歌手
+      - 三字段扩展：如果文件名里有两个分隔符，自动识别第三段为专辑
+        - artist-title-album: 歌手 - 歌名 - 专辑
+        - title-artist-album: 歌名 - 歌手 - 专辑
       - "none"        : 关闭，不做文件名解析
     支持 "01. 歌名 - 歌手.mp3" 这类带曲目号前缀的命名。
     """
@@ -148,17 +151,25 @@ def parse_filename(path: Path, fmt):
     if m:
         stem = m.group(1)
     if fmt == "none" or not stem:
-        return stem or path.stem, ""
+        return stem or path.stem, "", ""
     for sep in _FILENAME_SEPS:
         if sep in stem:
-            parts = stem.split(sep, 1)
-            if len(parts) == 2 and parts[0].strip() and parts[1].strip():
-                first, second = parts[0].strip(), parts[1].strip()
+            parts = [p.strip() for p in stem.split(sep) if p.strip()]
+            # 三字段：歌名 - 歌手 - 专辑
+            if len(parts) >= 3:
+                first, second, third = parts[0], parts[1], parts[2]
+                if "title-artist-album" in fmt:
+                    return first, second, third   # 歌名 - 歌手 - 专辑
+                if "artist-title-album" in fmt:
+                    return second, first, third   # 歌手 - 歌名 - 专辑
+            # 两字段
+            if len(parts) == 2:
+                first, second = parts[0], parts[1]
                 if fmt == "title-artist":
-                    return first, second      # 歌名 - 歌手
-                return second, first           # 歌手 - 歌名
+                    return first, second, ""      # 歌名 - 歌手
+                return second, first, ""          # 歌手 - 歌名
             break
-    return stem, ""
+    return stem, "", ""
 
 
 def scan_track(path: Path, filename_format="artist-title"):
@@ -180,12 +191,14 @@ def scan_track(path: Path, filename_format="artist-title"):
     genre = _tag_str(tags, "genre", "©gen", "TCON")
     year = _tag_str(tags, "date", "©day", "TDRC", "TYER")
 
-    # 标签缺失时，从文件名解析（"歌手 - 歌名" 或 "歌名 - 歌手"）
-    fname_title, fname_artist = parse_filename(path, filename_format)
+    # 标签缺失时，从文件名解析（"歌手 - 歌名" / "歌名 - 歌手 - 专辑"）
+    fname_title, fname_artist, fname_album = parse_filename(path, filename_format)
     if not title:
         title = fname_title or path.stem
     if not artist:
         artist = fname_artist or "未知艺术家"
+    if not album:
+        album = fname_album or "未知专辑"
 
     try:
         duration = int(getattr(mf.info, "length", 0) or 0)
@@ -239,7 +252,7 @@ class MusicLibrary:
         for p in self.music_dir.rglob("*"):
             if not p.is_file():
                 continue
-            if p.suffix.lower() in AUDIO_EXTS or p.name.lower() in EXT_COVER_NAMES:
+            if p.suffix.lower() in AUDIO_EXTS or p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
                 try:
                     st = p.stat()
                     fp.add((p.as_posix(), st.st_mtime, st.st_size))
