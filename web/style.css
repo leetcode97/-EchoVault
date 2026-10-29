@@ -127,6 +127,73 @@ body { padding-bottom: 108px; }
 .row .r-time { font-size: 12px; color: var(--text2); flex-shrink: 0; }
 .row .r-eq { flex-shrink: 0; width: 18px; text-align: center; }
 
+/* 歌单按钮（加入/移出） */
+.r-btn {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--accent);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+.r-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+.btn-remove { color: #C25E5E; }
+.btn-remove:hover { background: rgba(234,102,104,.12); border-color: #C25E5E; }
+
+/* 歌单选择浮层 */
+.pl-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0,0,0,.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pl-picker.hidden { display: none; }
+.pl-picker-box {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  max-width: 280px;
+  box-shadow: 0 8px 30px rgba(0,0,0,.15);
+}
+.pl-picker-title { font-size: 15px; font-weight: 600; }
+.pl-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0;
+}
+.pl-opt {
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  transition: background .12s, border-color .12s;
+}
+.pl-opt:hover { background: var(--accent-soft); border-color: var(--accent); }
+.pl-picker-close {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  background: none;
+  color: var(--text2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.pl-picker-close:hover { color: var(--text); }
+
 /* 专辑/歌手网格 */
 .grid {
   display: flex;

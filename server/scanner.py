@@ -19,7 +19,7 @@ EXT_COVER_NAMES = {
     "albumart.jpg", "albumart.png",
 }
 
-SCAN_VERSION = 4  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
+SCAN_VERSION = 5  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -173,7 +173,6 @@ def scan_track(path: Path, filename_format="artist-title"):
 
     rel = path.as_posix()
     track_id = hashlib.sha1(str(path.resolve()).encode("utf-8")).hexdigest()[:16]
-
     title = _tag_str(tags, "title", "©nam", "TIT2")
     artist = _tag_str(tags, "artist", "©ART", "TPE1")
     album = _tag_str(tags, "album", "©alb", "TALB")
@@ -227,6 +226,7 @@ class MusicLibrary:
         self.filename_format = filename_format
         self.tracks = []
         self.by_id = {}
+        self.by_path = {}
         self._lock = threading.Lock()
         self.scan_error = None
         self.scanned_at = None
@@ -269,6 +269,7 @@ class MusicLibrary:
                 self.scanned_at = data.get("scanned_at")
                 self._saved_fp = set(tuple(x) for x in data.get("files", []))
                 self.by_id = {t["id"]: t for t in self.tracks}
+                self.by_path = {t["path"]: t for t in self.tracks}
                 if self._cache_stale():
                     self.scan()
                 return
@@ -293,6 +294,7 @@ class MusicLibrary:
         with self._lock:
             self.tracks = []
             self.by_id = {}
+            self.by_path = {}
             self.scan_error = None
             if not self.music_dir.exists():
                 self.scan_error = f"音乐目录不存在: {self.music_dir}"
@@ -309,10 +311,21 @@ class MusicLibrary:
                 if not result:
                     continue
                 track, (tid, cover_data, cover_mime) = result
+                # path 归一化为相对 music_dir 的 posix 路径（本地/服务器一致，歌单引用可跨端同步）
+                try:
+                    track["path"] = p.relative_to(self.music_dir).as_posix()
+                except Exception:
+                    pass
+                if track.get("ext_cover"):
+                    try:
+                        track["ext_cover"] = Path(track["ext_cover"]).relative_to(self.music_dir).as_posix()
+                    except Exception:
+                        pass
                 if cover_data:
                     self._write_cover(tid, cover_data, cover_mime)
                 self.tracks.append(track)
                 self.by_id[track["id"]] = track
+                self.by_path[track["path"]] = track
             import time
             self.scanned_at = time.time()
             self._save_cache()

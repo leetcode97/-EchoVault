@@ -27,13 +27,22 @@
 
 <div class="statsbar" id="statsbar"></div>
 
-<nav class="tabs">
+<nav class="tabs" id="tabs">
   <button class="tab active" data-view="all">全部歌曲</button>
   <button class="tab" data-view="albums">专辑</button>
   <button class="tab" data-view="artists">歌手</button>
 </nav>
 
 <main id="view" class="view"></main>
+
+<!-- 歌单选择浮层 -->
+<div id="pl-picker" class="pl-picker hidden">
+  <div class="pl-picker-box">
+    <div class="pl-picker-title">加入歌单</div>
+    <div id="pl-picker-list" class="pl-picker-list"></div>
+    <button id="pl-picker-close" class="pl-picker-close">取消</button>
+  </div>
+</div>
 
 <!-- 底部播放条 -->
 <footer class="player" id="player">

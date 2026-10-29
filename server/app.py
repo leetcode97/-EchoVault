@@ -12,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .playlists import PlaylistStore
 from .scanner import MusicLibrary
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -55,6 +56,10 @@ COVER_DIR = ROOT / CONFIG["cover_cache"]
 
 library = MusicLibrary(MUSIC_DIR, CACHE_FILE, COVER_DIR, filename_format=CONFIG.get("filename_format", "artist-title"))
 library.load_or_scan()
+
+# 歌单存储（项目根 playlists.json；缺失时自动生成 Alive/soft/sing 空歌单）
+PLAYLIST_FILE = ROOT / "playlists.json"
+playlists_store = PlaylistStore(PLAYLIST_FILE)
 
 app = FastAPI(title="EchoVault", version="1.0.0")
 
@@ -167,6 +172,47 @@ def api_stream(track_id: str):
 def api_rescan():
     library.scan()
     return library.stats()
+
+
+# ---------- 歌单 ----------
+
+def _playlist_payload():
+    """歌单引用（相对路径）join 曲库，返回完整歌曲信息；失效引用自动过滤。"""
+    by_path = {t["path"]: t for t in library.tracks}
+    result = []
+    for pl in playlists_store.list_playlists():
+        tracks = []
+        for p in pl["tracks"]:
+            t = by_path.get(p)
+            if t:
+                tracks.append(t)
+        result.append({"name": pl["name"], "count": len(tracks), "tracks": tracks})
+    return {"playlists": result, "total": len(result)}
+
+
+@app.get("/api/playlists")
+def api_playlists():
+    return _playlist_payload()
+
+
+@app.post("/api/playlists/{name}/tracks")
+def api_playlist_add(name: str, body: dict):
+    track_path = (body or {}).get("path", "")
+    if not track_path:
+        raise HTTPException(400, "缺少 path 参数")
+    if library.by_path.get(track_path) is None:
+        raise HTTPException(404, f"曲库中不存在该歌曲: {track_path}")
+    playlists_store.add_track(name, track_path)
+    return _playlist_payload()
+
+
+@app.delete("/api/playlists/{name}/tracks")
+def api_playlist_remove(name: str, path: str = Query(default="")):
+    if not path:
+        raise HTTPException(400, "缺少 path 参数")
+    if not playlists_store.remove_track(name, path):
+        raise HTTPException(404, "歌单中不存在该歌曲")
+    return _playlist_payload()
 
 
 @app.get("/api/config")
