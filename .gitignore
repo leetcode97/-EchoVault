@@ -2,6 +2,9 @@
 music/
 .cache/
 
+# 歌单 = 个人数据（网页加歌会改服务器上的文件，进 git 会导致 pull 冲突）
+playlists.json
+
 # 音频格式全局兜底（防止音乐放在其他目录时被误提交）
 *.mp3
 *.ogg
