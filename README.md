@@ -15,6 +15,7 @@
 
 - 🎧 **只播自己的歌**：音乐文件全在你手里，没有任何平台的版权、会员、加密限制
 - 📱 **多端访问**：Android 手机 + Windows 电脑浏览器，PWA 添加到主屏幕，体验像原生 App
+- 🎵 **自己的歌单**：虚拟歌单（Alive / soft / sing），歌曲零复制、一首歌可进多个歌单
 - 🔐 **数据主权**：你的音乐、你的服务器，不经过任何第三方
 - 🕐 **7×24 在线**：部署到云服务器后随时随地听，手机锁屏也能控制（Media Session）
 - 🐳 **零版权风险**：音乐永远留在你的硬盘/服务器，代码与数据分离，永不进 Git
@@ -27,10 +28,29 @@
 | 🏷️ 元数据 | 读取 ID3 标签（标题/歌手/专辑/年份/流派/封面）；无标签文件自动从文件名解析歌手/标题 |
 | 🖼️ 封面 | 三级兜底：**内嵌封面 → 同名图片配对 → cover.jpg 目录兜底**，每首歌都能有自己的封面 |
 | 🔄 自动更新 | 往音乐目录放歌后约 20 秒自动入库（增/删/改都能感知），无需重启 |
-| 🔍 浏览 | 全部歌曲 / 专辑 / 歌手三种视图 + 全局搜索 |
+| 🎵 歌单 | 虚拟歌单 Alive / soft / sing：**歌曲物理只存一份，引用进多个歌单**，网页一键加入/移出，即时生效 |
+| 🔍 浏览 | 全部歌曲 / 专辑 / 歌手 / 歌单四种视图 + 全局搜索 |
 | ▶️ 播放 | 播放队列、进度拖动（HTTP Range 206）、倍速 0.5–2×、音量记忆、键盘快捷键 |
 | 📱 PWA | 离线壳 + 添加到主屏幕 + Android 锁屏媒体控制 |
-| 🐳 部署 | Docker 一键上云，音乐存挂载目录、代码存镜像，数据与代码分离 |
+| 🐳 部署 | Docker 一键上云，音乐/歌单存挂载目录、代码存镜像，数据与代码分离 |
+
+### 🎵 歌单怎么工作（虚拟引用设计）
+
+```
+music/（歌曲物理存储，只读挂载）        playlists.json（引用名单，可写挂载）
+├─ 歌曲A.mp3  ──────────────┐           { "playlists": [
+├─ 歌曲B.mp3  ────────┐     │             { "name": "Alive", "tracks": ["歌曲A.mp3"] },
+└─ 封面.jpg            │     │             { "name": "soft",  "tracks": ["歌曲B.mp3"] },
+                       │     │             { "name": "sing",  "tracks": ["歌曲A.mp3", "歌曲B.mp3"] } ] }
+                       └───▶ │  ← 歌单只存「相对路径」引用，不复制任何音乐文件
+                             └──▶ 一首歌可同时出现在任意多个歌单
+```
+
+- **零复制**：加歌单只是写一行路径引用，音乐文件永远只有一份
+- **多归属**：同一首歌可以同时在 Alive 和 sing 里，互不影响
+- **跨端一致**：引用存的是相对 music 目录的路径，本地与服务器完全相同，歌单可自由同步
+- **自动容错**：歌曲被删后，歌单中的失效引用自动过滤，不报错
+- **文件归属**：`playlists.json` 是个人数据，与 `music/` 一样**不进 Git**，网页操作即时写入
 
 ## 📸 界面预览
 
@@ -52,6 +72,8 @@ python -m venv .venv
 .\.venv\Scripts\pip install -r server\requirements.txt
 .\.venv\Scripts\python -m uvicorn server.app:app --host 0.0.0.0 --port 8848
 ```
+
+> 首次启动自动生成 `playlists.json`（三个空歌单 Alive / soft / sing），无需手动创建。
 
 ## ⚙️ 配置（config.json）
 
@@ -81,6 +103,9 @@ python -m venv .venv
 | `GET /api/library?q=` | 曲库列表（支持搜索） |
 | `GET /api/albums` | 按专辑分组 |
 | `GET /api/artists` | 按歌手分组 |
+| `GET /api/playlists` | 歌单列表（引用 join 曲库，返回完整歌曲信息） |
+| `POST /api/playlists/{name}/tracks` | 加歌到歌单（body: `{"path": "相对路径"}`） |
+| `DELETE /api/playlists/{name}/tracks?path=` | 从歌单移出 |
 | `GET /api/stats` | 曲库统计 |
 | `GET /api/cover/{id}` | 封面图 |
 | `GET /api/stream/{id}` | 音频流（HTTP Range 拖动） |
@@ -88,71 +113,77 @@ python -m venv .venv
 
 ## ☁️ 部署到云端（Docker）
 
-音乐**永不进 Git**（`.gitignore` 已锁定 `music/` 与全部音频格式），代码与数据分离：
+音乐与歌单**永不进 Git**（`.gitignore` 已锁定 `music/`、全部音频格式与 `playlists.json`），代码与数据分离：
 
 ```
 本地代码 --git push--> GitHub --git clone--> 云服务器 --docker compose--> EchoVault
                                             ↑
-                                    音乐直接传进项目内 ~/echovault/music
+                              音乐/歌单直接存服务器项目内，网页管理
 ```
 
 详细步骤见 **[DEPLOY.md](DEPLOY.md)**（Docker 部署 / 传歌 / 国内加速 / 安全加固 / 备份）。
 
 ```bash
-# 服务器上四行搞定（音乐目录就在项目里）
+# 服务器上几行搞定（音乐目录就在项目里）
 git clone https://github.com/leetcode97/-EchoVault.git echovault
 cd echovault
 mkdir -p music
+touch playlists.json          # 先建歌单文件，再起容器（Docker 挂载不存在的路径会建目录）
 docker compose up -d --build
 ```
+
+- **挂载设计**：`music/` 只读挂载（容器碰不到你的音乐），`playlists.json` 单独可写挂载（网页加歌写它）
+- **日常加歌**：SFTP/rsync 把新歌拖进服务器 `music/` → 约 20 秒自动入库
+- **日常归歌单**：网页上点歌曲行 **＋** → 选歌单 → 即时生效；歌单视图 **−** 移出
+- **国内服务器加速**：Dockerfile 已内置阿里云 PyPI 源；Docker 镜像加速器配置见 DEPLOY.md，构建从十几分钟降到 1 分钟内
+- **放行端口**：云服务商安全组放行 TCP `8848` 后，手机/电脑访问 `http://服务器IP:8848`
 
 ```bash
 # 传歌（增量，只传新增/改动的，20 秒自动入库）
 rsync -avP "本地music路径/" root@服务器IP:~/echovault/music/
 ```
 
-- **国内服务器加速**：Dockerfile 已内置阿里云 PyPI 源；Docker 镜像加速器配置见 DEPLOY.md，构建从十几分钟降到 1 分钟内
-- **放行端口**：云服务商安全组放行 TCP `8848` 后，手机/电脑访问 `http://服务器IP:8848`
-- **日常加歌**：本地下载新歌 → rsync 或 SFTP 拖进服务器 `music/` → 20 秒后自动入库，不用碰 Docker
-
 ## 📁 项目结构
 
 ```
 EchoVault/
 ├── server/          # FastAPI 后端
-│   ├── app.py       # 路由与静态服务
+│   ├── app.py       # 路由与静态服务（含歌单 API）
 │   ├── scanner.py   # 扫描 + 标签/封面 + 缓存
+│   ├── playlists.py # 歌单读写（虚拟引用，JSON 持久化）
 │   └── requirements.txt
 ├── web/             # 前端 PWA（原生 HTML/CSS/JS）
 │   ├── index.html / app.js / style.css
 │   ├── manifest.json / sw.js / icons/
 ├── music/           # 你的音乐（不入 git）
 ├── tools/           # 辅助工具
-│   └── check_cover.py   # 封面/元数据体检
+│   ├── check_cover.py    # 封面/元数据体检
+│   └── test_playlists.py # 歌单 API 回归测试
 ├── docs/            # 文档与截图
 ├── config.json      # 配置
+├── playlists.json   # 你的歌单（不入 git，首次启动自动生成）
 ├── run.ps1          # Windows 一键启动
 ├── DEPLOY.md        # 服务器部署指南
 ├── Dockerfile / docker-compose.yml
-└── .gitignore       # 已锁定 music/ 与音频格式
+└── .gitignore       # 已锁定 music/、音频格式与 playlists.json
 ```
 
 ## 🛠️ 技术栈
 
 **FastAPI**（Python）· **原生 PWA**（HTML/CSS/JS + Service Worker）· **mutagen**（元数据）· **Docker Compose**
 
-后端零数据库依赖：曲库缓存 JSON 于 `.cache/`，文件变更自动感知，轻量到一台低配服务器能同时跑多个服务。
+后端零数据库依赖：曲库缓存 JSON 于 `.cache/`、歌单 JSON 于 `playlists.json`，文件变更自动感知，轻量到一台低配服务器能同时跑多个服务。
 
 ## ⚖️ 版权说明
 
-本项目**只播放你自己合法拥有的音乐文件**。代码可自由使用；音乐数据（`music/`）与音频格式文件已被 `.gitignore` 锁定，**不会也不应**提交到任何公开仓库。音乐的获取、存储、使用请遵守所在地法律法规与版权规定。
+本项目**只播放你自己合法拥有的音乐文件**。代码可自由使用；音乐数据（`music/`）与音频格式文件已被 `.gitignore` 锁定，**不会也不应**提交到任何公开仓库。歌单（`playlists.json`）只含文件路径引用，同样不入库。音乐的获取、存储、使用请遵守所在地法律法规与版权规定。
 
 ## 🗺️ Roadmap
 
 - [x] 曲库扫描 / 元数据 / 封面三级兜底 / 流式播放
 - [x] 搜索 / 专辑 / 歌手 / 播放队列 / 倍速 / Media Session / PWA
 - [x] 同名封面配对 / 自动感知文件变更 / Docker 部署 / 国内构建加速
-- [ ] 歌单持久化（数据库）
+- [x] 虚拟歌单（Alive / soft / sing，JSON 持久化）
 - [ ] 歌词（LRC）显示
 - [ ] 网页上传歌曲与封面
 - [ ] 访问密码鉴权

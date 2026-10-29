@@ -5,27 +5,28 @@
 
 ---
 
-## 〇、整体架构：代码与音乐是两条路
+## 〇、整体架构：代码与数据是两条路
 
 ```
-代码线（自动更新）          音乐线（手动上传）
+代码线（自动更新）          数据线（手动上传）
 ┌─────────────────┐        ┌──────────────────────┐
 │ GitHub（只存代码）│        │ 你的电脑（音乐库）     │
-│ 不含任何音乐文件  │        │ music\ 里的所有歌     │
+│ 不含音乐/歌单    │        │ music\ 里的所有歌     │
 └────────┬────────┘        └──────────┬───────────┘
-         │ git clone（服务器拉取）       │ rsync（手动上传）
+         │ git pull（服务器拉取）       │ rsync/SFTP（手动上传）
          ▼                             ▼
 ┌───────────────────────────────────────────────┐
 │              云服务器（Linux + Docker）          │
 │  ┌─────────────────────┐   ┌─────────────────┐ │
-│  │ 🐳 容器 = 代码       │   │ 💾 硬盘 = 音乐   │ │
-│  │（git 拉下来构建的）   │   │ ~/echovault/ │ │
-│  │                     │←挂载→│    music       │ │
+│  │ 🐳 容器 = 代码       │   │ 💾 硬盘 = 数据   │ │
+│  │（git 拉下来构建的）   │   │ music/（只读挂载）│ │
+│  │                     │←挂载→│ playlists.json │ │
+│  │                     │   │  （可写·网页管理）│ │
 │  └─────────────────────┘   └─────────────────┘ │
 └───────────────────────────────────────────────┘
 ```
 
-**核心规则：GitHub 只负责"程序"，你负责"歌"。** 公开仓库里永远不会出现你的音乐。
+**核心规则：GitHub 只负责"程序"，你负责"歌"（和歌单）。** 公开仓库里永远不会出现你的音乐，`playlists.json`（歌单）也只含文件路径引用，同样不入库。
 
 ---
 
@@ -99,8 +100,12 @@ sudo ufw allow 8848/tcp
 git clone https://github.com/leetcode97/-EchoVault.git echovault
 cd echovault
 
-# 2. 创建音乐文件夹（就在项目里面，以后传歌都传这）
+# 2. 创建数据文件（音乐夹 + 歌单文件）
 mkdir -p music
+touch playlists.json
+# ★ 必须 touch：Docker 挂载「不存在的文件路径」会自作主张建目录而非文件，
+#   容器里 /app/playlists.json 变成目录，歌单就写不了了。空文件即可，
+#   首次启动后端会自动补全三个空歌单（Alive / soft / sing）。
 
 # 3. 构建镜像并后台启动（崩溃/重启自动拉起）
 docker compose up -d --build
@@ -120,9 +125,9 @@ docker compose ps         # echovault 状态应为 Up
 
 ### 音乐到底存哪？（先看懂这句）
 
-歌曲物理上存在**服务器硬盘**的 `~/echovault/music` 文件夹，通过 Docker"挂载"借给容器看（容器内叫 `/data/music`，是**同一份文件，不是复制**）。你往这个文件夹放歌，EchoVault 约 20 秒后自动入库，**无需重启**。
+歌曲物理上存在**服务器硬盘**的 `~/echovault/music` 文件夹，通过 Docker"挂载"借给容器看（容器内叫 `/data/music`，是**同一份文件，不是复制**）。歌单 `playlists.json` 同理，但它是**可写挂载**——网页上加歌/移出歌单，写的就是服务器上这份文件。你往 `music` 文件夹放歌，EchoVault 约 20 秒后自动入库，**无需重启**。
 
-类比：像 U 盘插电脑——文件在 U 盘里，电脑挂载后能打开；拔掉（删容器）文件还在 U 盘。
+类比：像 U 盘插电脑——文件在 U 盘里，电脑挂载后能打开；拔掉（删容器）文件还在 U 盘。歌单就是 U 盘里的一张"收藏清单"，随时可以改。
 
 ### Windows 电脑上传，三选一
 
@@ -159,6 +164,7 @@ curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 | 场景 | 操作 |
 | --- | --- |
 | **加新歌** | 往 `~/echovault/music` 传文件即可，20 秒自动入库，什么都不用重启 |
+| **归歌单** | 网页上点歌曲行 **＋** → 选歌单（Alive/soft/sing）→ 即时生效；歌单视图行尾 **−** 移出 |
 | **改代码/更新版本** | 本地 `git push` → 服务器 `git pull` → `docker compose up -d --build` |
 | **看日志** | `docker compose logs -f echovault` |
 | **重启服务** | `docker compose restart` |
@@ -185,6 +191,7 @@ curl http://localhost:8848/api/stats    # tracks 应变成你的歌曲数
 | 端口 8848 被占用 | `docker compose down` 后重试；或 `ss -tlnp | grep 8848` 看谁占着 |
 | 传歌很慢 | 检查服务器带宽上限、安全组入站规则；rsync 会自动续传 |
 | 曲库没刷新 | 确认文件真的在 `~/echovault/music`；等 20 秒；或 `curl -X POST http://localhost:8848/api/rescan` 手动扫 |
+| 网页加歌单报错/歌单空 | 确认服务器项目根有 `playlists.json`（`ls ~/echovault/playlists.json`）；若是目录而非文件，说明当初没 touch 就 `up` 了：删掉该目录、`touch playlists.json`、`docker compose up -d --build` 重建 |
 | 手机打不开 | 手机和服务器要在同一网络？——不，手机走公网，确认安全组放行 8848、服务绑定 `0.0.0.0`（配置里默认已是） |
 | 服务器重启后服务没了 | 不应发生：`docker compose` 配了 `restart: unless-stopped`；若没有自动拉起，执行 `docker compose up -d` |
 | 容器删了歌还在吗 | 在。歌在服务器硬盘 `~/echovault/music`，不在容器里 |
@@ -205,7 +212,8 @@ cd D:\CodeProjects\🏆 EchoVault
 
 | 文件 | 作用 |
 | --- | --- |
-| `docker-compose.yml` | 容器编排：端口、音乐挂载、缓存卷 |
-| `Dockerfile` | 镜像构建（只打包代码，不含音乐） |
+| `docker-compose.yml` | 容器编排：端口、音乐挂载（只读）、歌单挂载（可写）、缓存卷 |
+| `Dockerfile` | 镜像构建（只打包代码，不含音乐/歌单） |
 | `config.json` | 本地配置（服务器上由 docker-compose 环境变量覆盖） |
-| `.gitignore` | 已锁定 `music/` 与全部音频格式，杜绝版权风险 |
+| `playlists.json` | 你的歌单（只含文件路径引用，不入 git；首次启动自动生成） |
+| `.gitignore` | 已锁定 `music/`、全部音频格式与 `playlists.json`，杜绝版权风险 |
