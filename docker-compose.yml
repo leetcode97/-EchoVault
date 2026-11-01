@@ -1,12 +1,13 @@
 services:
   echovault:
+    image: echovault:latest
     build: .
     container_name: echovault
     restart: unless-stopped
     ports:
       - "8848:8000"
     volumes:
-      - ./music:/data/music:ro
+      - ./music:/data/music
       - ./playlists.json:/app/playlists.json
       - echovault_cache:/app/.cache
     environment:

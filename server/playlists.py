@@ -48,9 +48,8 @@ class PlaylistStore:
         return data
 
     def _save(self, data):
-        tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(tmp, self.path)
+        # 直接写原文件（Docker 单文件挂载不支持 os.replace 替换）
+        self.path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def list_playlists(self):
         with self._lock:
