@@ -19,7 +19,7 @@ EXT_COVER_NAMES = {
     "albumart.jpg", "albumart.png",
 }
 
-SCAN_VERSION = 7  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
+SCAN_VERSION = 8  # 扫描逻辑版本；升级后强制全量重扫，避免旧缓存不生效
 
 MIME_TO_EXT = {
     "image/jpeg": ".jpg",
@@ -65,6 +65,34 @@ def _extract_cover(mf):
     return None, None
 
 
+def _fix_mojibake(s: str) -> str:
+    """修复 GBK 被错误解码为 Latin-1 的乱码。
+
+    国内很多老 MP3 的 ID3 标签实际是 GBK 编码，但错误声明为 ISO-8859-1，
+    导致 mutagen 按 Latin-1 解码后出现 °®μÄ·É... 这样的乱码。
+    """
+    if not s:
+        return s
+    # 如果已经有中文字符，说明解码正确，直接返回
+    has_cjk = any(0x4E00 <= ord(c) <= 0x9FFF for c in s)
+    if has_cjk:
+        return s
+    # 如果没有高位字符（纯 ASCII），也不需要修复
+    has_high = any(ord(c) >= 0x80 for c in s)
+    if not has_high:
+        return s
+    # 尝试修复：Latin-1 字符串编码回字节，再用 GBK 解码
+    try:
+        fixed = s.encode('latin-1').decode('gbk')
+        # 修复成功的标志：至少有一个中文字符，且没有替换字符
+        has_cjk_fixed = any(0x4E00 <= ord(c) <= 0x9FFF for c in fixed)
+        if has_cjk_fixed and '�' not in fixed:
+            return fixed
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+    return s
+
+
 def _tag_str(tags, *keys):
     if tags is None:
         return ""
@@ -80,7 +108,7 @@ def _tag_str(tags, *keys):
         if v:
             s = str(v).strip()
             if s:
-                return s
+                return _fix_mojibake(s)
     return ""
 
 
